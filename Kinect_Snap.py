@@ -1,3 +1,6 @@
+"""
+10.27 version
+"""
 import PyKinectV2
 from PyKinectV2 import *
 import PyKinectRuntime
@@ -5,6 +8,9 @@ import numpy as np
 import cv2
 import ctypes
 import time
+
+calib_mat = np.array([[-1.007191, 0.003629, 0.025720, -0.080915], [0.014566, 1.014525, -0.046988, 0.010771],
+                      [-0.003082, -0.009628, -1.006714, 1.040845], [0.0, 0.0, 0.0, 1.0000]])
 
 
 class Kinect(object):
@@ -28,37 +34,23 @@ class Kinect(object):
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGBA2RGB)              # Format : RGB
                 break
 
+        return result_img[156:, ]
+
+    def color2xyz(self, data):
+        """
+        :param depth_frame:
+        :param data: y,x pixel listof class index
+        :return:
+        """
         while True:
             if self._kinect.has_new_depth_frame():
                 depth_frame = self._kinect.get_last_depth_frame()
                 break
 
-        return result_img[156:, ], depth_frame
-
-    def color2xyz(self, depth_frame, data):
-        """
-        :param depth_frame:
-        :param data: y,x pixel of index
-        :return:
-        """
-        # while True:
-        #     if self._kinect.has_new_depth_frame():
-        #         depth_frame = self._kinect.get_last_depth_frame()
-        #         break
-        #     else:
-        #         time.sleep(2)
-        # depth_frame = self.depth_frame
-        # calib_mat = np.array([[-0.929959, -0.001979, 0.077564, -0.130750], [0.003083, 0.937452, -0.094629, 0.058237], [-0.011651, 0.020211, -1.148202, 1.268683],
-        #                       [0.0, 0.0, 0.0, 1.0000]])  # until 201 data
-        calib_Mat = np.array([[-0.934119, 0.004855, -0.019816, -0.026845],
-                              [0.011966, 0.942211, -0.158447, 0.128980],
-                              [-0.010695, 0.014957, -1.304078, 1.441495],
-                              [0.0, 0.0, 0.0, 1.0]])  # until 201 data
-
         target = np.array([data[1], data[0]])
 
-        # Revision for resize(256
-        target[0] = (256 - target[0]) * 3.035 + 573   # Width revision, rate : 3.03515625, offset : 573
+        # Revision for resize
+        target[0] = (255 - target[0]) * 3.035 + 573   # Width revision, rate : 3.03515625, offset : 573
         target[1] = (target[1] + 128) * 3.1953125 + 143       # Height revision, rate : 3.1953125, offset : 143
 
         p_b = ctypes.pointer((_CameraSpacePoint * 1920 * 1080)())
