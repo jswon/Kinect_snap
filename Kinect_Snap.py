@@ -38,20 +38,31 @@ class Kinect(object):
 
     def color2xyz(self, data):
         """
-        :param depth_frame:
-        :param data: y,x pixel listof class index
-        :return:
+        :param data: [y,x] pixel list of class index ,dtype = ndarray
+        :return: Average position x, y, z
         """
+
         while True:
             if self._kinect.has_new_depth_frame():
                 depth_frame = self._kinect.get_last_depth_frame()
                 break
 
-        target = np.array([data[1], data[0]])
+        mean_pxl = np.mean(data, axis=0).astype(np.uint32)
 
-        # Revision for resize
-        target[0] = (255 - target[0]) * 3.035 + 573   # Width revision, rate : 3.03515625, offset : 573
-        target[1] = (target[1] + 128) * 3.1953125 + 143       # Height revision, rate : 3.1953125, offset : 143
+        # Make patch
+        pxl_patch = []
+        start_pxl = mean_pxl - np.array([2, 2])
+
+        for i in range(5):
+            for j in range(5):
+                pxl_patch.append(start_pxl + np.array([i, j]))
+
+        # Pixel Revision
+        for idx, [y, x] in enumerate(pxl_patch):
+            pxl_patch[idx][0] = (255 - x) * 3.035 + 573  # Width revision, rate : 3.03515625, offset : 573
+            pxl_patch[idx][1] = (y + 128) * 3.1953125 + 143  # Height revision, rate : 3.1953125, offset : 143
+
+        pxl_patch = np.array(pxl_patch).astype(np.uint32)  # round? int?
 
         p_b = ctypes.pointer((_CameraSpacePoint * 1920 * 1080)())
         p_a = ctypes.cast(p_b, ctypes.POINTER(_CameraSpacePoint))
@@ -68,10 +79,22 @@ class Kinect(object):
         d = np.reshape(camera_space_point, (1, np.product(camera_space_point.shape)))
         xyz_frame = np.reshape(d, (1080, 1920, 3))
 
-        target = target.astype(np.uint32)
-        kinect_pos = np.array([[xyz_frame[target[1], target[0], 0], xyz_frame[target[1], target[0], 1], xyz_frame[target[1], target[0], 2], 1]])
+        xyz_list = []
 
-        xyz = np.dot(calib_mat, kinect_pos.T)
-        xyz = xyz[:-1].reshape([1, 3])[0]
+        for idx, [x, y] in enumerate(pxl_patch):
+            kinect_pos = np.array([[xyz_frame[y, x, 0], xyz_frame[y, x, 1], xyz_frame[y, x, 2], 1]])
+            xyz = np.dot(calib_mat, kinect_pos.T)
+            xyz = xyz.flatten()[:-1]
+            xyz_list.append(xyz)
 
-        return xyz
+        xyz_list = np.array(xyz_list)
+
+        # Delete nan value
+        if np.any(np.isnan(xyz_list.flatten())):
+            nan_idx = np.sort(np.transpose(np.argwhere(np.isnan(xyz_list))[0::3])[0])
+            for x in reversed(nan_idx):
+                xyz_list = np.delete(xyz_list, x, 0)
+
+        mean_xyz = np.mean(xyz_list, axis=0)
+
+        return mean_xyz
