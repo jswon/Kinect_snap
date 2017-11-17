@@ -1,5 +1,5 @@
 """
-10.27 version
+11.14 version
 """
 import PyKinectV2
 from PyKinectV2 import *
@@ -8,18 +8,23 @@ import numpy as np
 import cv2
 import ctypes
 import time
+import urx
 
 calib_mat = np.array([[-1.007191, 0.003629, 0.025720, -0.080915], [0.014566, 1.014525, -0.046988, 0.010771],
                       [-0.003082, -0.009628, -1.006714, 1.040845], [0.0, 0.0, 0.0, 1.0000]])
-
+PI = np.pi
+HOME = (90 * PI / 180, -90 * PI / 180, 0, -90 * PI / 180, 0, 0)
 
 class Kinect(object):
     def __init__(self):
+        self.rob = urx.Robot("192.168.10.12")
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Depth | PyKinectV2.FrameSourceTypes_Infrared)
         self.depth_frame = np.empty([512, 424])
         self.focalLength = 1485.73
         self.centerX = 960.5
         self.centerY = 540.5
+        self.lower = np.array([180, 135, 64], dtype="uint8")
+        self.upper = np.array([244, 188, 99], dtype="uint8")
 
     def snap(self):
         while True:
@@ -32,9 +37,20 @@ class Kinect(object):
                 cropped_img = flipped_img[143:961, 573:1350]                           # cropped ROI, Global View
                 result_img = cv2.resize(cropped_img, (256, 256))                       # Resized image (256,256) RGBA
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGBA2RGB)              # Format : RGB
-                break
+                result_img = result_img[156:,]
 
-        return result_img[156:, ]
+                mask = cv2.inRange(result_img, self.lower, self.upper)
+                output_1 = cv2.bitwise_and(result_img, result_img, mask=mask)
+                output = cv2.cvtColor(output_1, cv2.COLOR_RGB2GRAY)
+
+                k = np.argwhere(output != 0).shape[0]
+
+                if k > 5:
+                    self.rob.movej(HOME, 1, 1)
+                else:
+                    break
+
+        return result_img
 
     def color2xyz(self, data):
         """
@@ -49,7 +65,8 @@ class Kinect(object):
 
         mean_pxl = np.mean(data, axis=0).astype(np.uint32)
 
-        # Make patch
+
+        # Make patch, detected object center pixel.
         pxl_patch = []
         start_pxl = mean_pxl - np.array([2, 2])
 
@@ -97,4 +114,7 @@ class Kinect(object):
 
         mean_xyz = np.mean(xyz_list, axis=0)
 
-        return mean_xyz
+        if np.any(np.isinf(mean_xyz)) or np.any(np.isnan(mean_xyz)):
+            return None
+        else:
+            return mean_xyz
