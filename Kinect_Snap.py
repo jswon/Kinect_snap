@@ -1,5 +1,5 @@
 """
-11.14 version
+11.29 version
 """
 import PyKinectV2
 from PyKinectV2 import *
@@ -10,14 +10,14 @@ import ctypes
 import time
 import urx
 
-calib_mat = np.array([[-1.007191, 0.003629, 0.025720, -0.080915], [0.014566, 1.014525, -0.046988, 0.010771],
-                      [-0.003082, -0.009628, -1.006714, 1.040845], [0.0, 0.0, 0.0, 1.0000]])
+calib_mat = np.array([[-1.005795, 0.008462, -0.021871, -0.078898], [0.024404 ,1.014035, -0.098330 ,0.032592], [0.046580, -0.041540, -1.057145, 1.101778], [0.0, 0.0, 0.0, 1.0000]])
 PI = np.pi
 HOME = (90 * PI / 180, -90 * PI / 180, 0, -90 * PI / 180, 0, 0)
 
+
 class Kinect(object):
     def __init__(self):
-        self.rob = urx.Robot("192.168.10.12")
+        # self.rob = urx.Robot("192.168.10.12")
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Depth | PyKinectV2.FrameSourceTypes_Infrared)
         self.depth_frame = np.empty([512, 424])
         self.focalLength = 1485.73
@@ -34,10 +34,10 @@ class Kinect(object):
                 # TODO Camera Position confirm.
                 raw_img = raw_array.reshape((1080, 1920, 4))                           # to Mat
                 flipped_img = cv2.flip(raw_img, 1)                                     # Flipped Image
-                cropped_img = flipped_img[143:961, 573:1350]                           # cropped ROI, Global View
+                cropped_img = flipped_img[108:939, 631:1399]  # cropped ROI, Global View
                 result_img = cv2.resize(cropped_img, (256, 256))                       # Resized image (256,256) RGBA
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGBA2RGB)              # Format : RGB
-                result_img = result_img[156:,]
+                result_img = result_img[156:, ]
 
                 mask = cv2.inRange(result_img, self.lower, self.upper)
                 output_1 = cv2.bitwise_and(result_img, result_img, mask=mask)
@@ -46,11 +46,12 @@ class Kinect(object):
                 k = np.argwhere(output != 0).shape[0]
 
                 if k > 5:
-                    self.rob.movej(HOME, 1, 1)
+                    pass
+                    # self.rob.movej(HOME, 1, 1)
                 else:
                     break
 
-        return result_img
+        return result_img[3:,:,:]
 
     def color2xyz(self, data):
         """
