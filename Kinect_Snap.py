@@ -1,5 +1,5 @@
 """
-11.29 version
+11.30 version
 """
 import PyKinectV2
 from PyKinectV2 import *
@@ -10,7 +10,10 @@ import ctypes
 import time
 import urx
 
-calib_mat = np.array([[-1.005795, 0.008462, -0.021871, -0.078898], [0.024404 ,1.014035, -0.098330 ,0.032592], [0.046580, -0.041540, -1.057145, 1.101778], [0.0, 0.0, 0.0, 1.0000]])
+calib_mat = np.array([[-1.005795,  0.008462, -0.021871, -0.078898],
+                      [ 0.024404,  1.014035, -0.098330,  0.032592],
+                      [ 0.046580, -0.041540, -1.057145,  1.101778],
+                      [ 0.0,       0.0,       0.0,       1.000000]])
 PI = np.pi
 HOME = (90 * PI / 180, -90 * PI / 180, 0, -90 * PI / 180, 0, 0)
 
@@ -66,7 +69,6 @@ class Kinect(object):
 
         mean_pxl = np.mean(data, axis=0).astype(np.uint32)
 
-
         # Make patch, detected object center pixel.
         pxl_patch = []
         start_pxl = mean_pxl - np.array([2, 2])
@@ -77,8 +79,8 @@ class Kinect(object):
 
         # Pixel Revision
         for idx, [y, x] in enumerate(pxl_patch):
-            pxl_patch[idx][0] = (255 - x) * 3.035 + 573  # Width revision, rate : 3.03515625, offset : 573
-            pxl_patch[idx][1] = (y + 128) * 3.1953125 + 143  # Height revision, rate : 3.1953125, offset : 143
+            pxl_patch[idx][0] = 3 * (255 - x) + 521  # Width revision, rate : 3, offset : 521
+            pxl_patch[idx][1] =  3.246 * (y + 128) + 108  # Height revision, rate : 3.246, offset : 108
 
         pxl_patch = np.array(pxl_patch).astype(np.uint32)  # round? int?
 
