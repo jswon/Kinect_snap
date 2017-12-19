@@ -50,19 +50,14 @@ class Kinect(object):
 
                 if k > 5:
                     pass
-                    # self.rob.movej(HOME, 1, 1)
                 else:
                     break
 
         return result_img[3:,:,:]
 
     def color2xyz(self, data):
-        """
-        :param data: [y,x] pixel list of class index ,dtype = ndarray
-        :return: Average position x, y, z
-        """
-
         while True:
+            time.sleep(0.01)
             if self._kinect.has_new_depth_frame():
                 depth_frame = self._kinect.get_last_depth_frame()
                 break
