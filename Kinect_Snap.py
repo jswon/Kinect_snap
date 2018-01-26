@@ -8,19 +8,15 @@ import numpy as np
 import cv2
 import ctypes
 import time
-import urx
 
-calib_mat = np.array([[-1.005795,  0.008462, -0.021871, -0.078898],
-                      [ 0.024404,  1.014035, -0.098330,  0.032592],
-                      [ 0.046580, -0.041540, -1.057145,  1.101778],
+calib_mat = np.array([[-0.983879,  0.022774,  0.005712, -0.080417],
+                      [ 0.018603,  0.993666, -0.085626, -0.032837],
+                      [ 0.009604, -0.075230, -0.957587,  0.935117],
                       [ 0.0,       0.0,       0.0,       1.000000]])
-PI = np.pi
-HOME = (90 * PI / 180, -90 * PI / 180, 0, -90 * PI / 180, 0, 0)
 
 
 class Kinect(object):
     def __init__(self):
-        # self.rob = urx.Robot("192.168.10.12")
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Depth | PyKinectV2.FrameSourceTypes_Infrared)
         self.depth_frame = np.empty([512, 424])
         self.focalLength = 1485.73
@@ -36,24 +32,14 @@ class Kinect(object):
 
                 # TODO Camera Position confirm.
                 raw_img = raw_array.reshape((1080, 1920, 4))                           # to Mat
-                flipped_img = cv2.flip(raw_img, 1)                                     # Flipped Image
-                cropped_img = flipped_img[108:939, 631:1399]  # cropped ROI, Global View
+                cropped_img = cv2.flip(raw_img[33:912, 540:1329], 1)                                     # Flipped Image
+
                 result_img = cv2.resize(cropped_img, (256, 256))                       # Resized image (256,256) RGBA
                 result_img = cv2.cvtColor(result_img, cv2.COLOR_RGBA2RGB)              # Format : RGB
-                result_img = result_img[156:, ]
+                result_img = result_img[164:, ]
+                break
 
-                mask = cv2.inRange(result_img, self.lower, self.upper)
-                output_1 = cv2.bitwise_and(result_img, result_img, mask=mask)
-                output = cv2.cvtColor(output_1, cv2.COLOR_RGB2GRAY)
-
-                k = np.argwhere(output != 0).shape[0]
-
-                if k > 5:
-                    pass
-                else:
-                    break
-
-        return result_img[3:,:,:]
+        return result_img[:, :, :]
 
     def color2xyz(self, data):
         while True:
@@ -74,8 +60,8 @@ class Kinect(object):
 
         # Pixel Revision
         for idx, [y, x] in enumerate(pxl_patch):
-            pxl_patch[idx][0] = 3 * (255 - x) + 521  # Width revision, rate : 3, offset : 521
-            pxl_patch[idx][1] =  3.246 * (y + 128) + 108  # Height revision, rate : 3.246, offset : 108
+            pxl_patch[idx][0] = 3.08203125 * (255 - x) + 540  # Width revision, rate : 3, offset : 521
+            pxl_patch[idx][1] = 3.43359375 * (y + 128) + 33  # Height revision, rate : 3.246, offset : 108
 
         pxl_patch = np.array(pxl_patch).astype(np.uint32)  # round? int?
 
