@@ -1,5 +1,5 @@
 """
-11.30 version
+18.04.05 version
 """
 import PyKinectV2
 from PyKinectV2 import *
@@ -26,20 +26,24 @@ class Kinect(object):
         self.upper = np.array([244, 188, 99], dtype="uint8")
 
     def snap(self):
+        result_img = self.scene()
+        cut_img = result_img[164:,]
+
+        return cut_img
+
+    def scene(self):
         while True:
             if self._kinect.has_new_color_frame():
                 raw_array = self._kinect.get_last_color_frame()
-
-                # TODO Camera Position confirm.
                 raw_img = raw_array.reshape((1080, 1920, 4))                           # to Mat
+
                 cropped_img = cv2.flip(raw_img[33:912, 540:1329], 1)                                     # Flipped Image
 
-                result_img = cv2.resize(cropped_img, (256, 256))                       # Resized image (256,256) RGBA
-                result_img = cv2.cvtColor(result_img, cv2.COLOR_RGBA2RGB)              # Format : RGB
-                result_img = result_img[164:, ]
+                resized_img = cv2.resize(cropped_img, (256, 256))                       # Resized image (256,256) RGBA
+                result_img = cv2.cvtColor(resized_img, cv2.COLOR_RGBA2RGB)              # Format : RGB
                 break
 
-        return result_img[:, :, :]
+        return result_img
 
     def color2xyz(self, data):
         while True:
